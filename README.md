@@ -1,6 +1,12 @@
 # Brightness-controller
 Brightness controller control brightness
-![image](https://github.com/user-attachments/assets/e6168cbc-66f1-4b73-99be-ae0a16dc3298)
+
+
+
+
+
+![image](https://github.com/user-attachments/assets/6bcfeaf7-276f-4c60-9ba5-40f890c8a091)
+
 
 
 
