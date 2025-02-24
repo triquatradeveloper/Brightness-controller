@@ -11,62 +11,58 @@ Brightness controller control brightness
 
 
 
-Stylish Brightness Controller
-A sleek, Flet-based Python application for controlling your screen brightness with style and ease. This project provides a modern, dark-themed user interface along with advanced functionalities, including system tray integration, multi-monitor support, and more.
+[![Python Version](https://img.shields.io/badge/python-3.x-blue.svg)](https://www.python.org)  
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Features
-User-Friendly UI:
-A modern dark-themed interface built with Flet for an attractive and responsive user experience.
+# 🎨 Stylish Brightness Controller
 
-Slider Control:
-Adjust brightness with a smooth slider that updates the screen brightness in real-time.
+A sleek, Flet-based Python application for controlling your screen brightness with style and ease. Experience a modern, dark-themed user interface along with advanced features like system tray integration and multi-monitor support.
 
-Dial Visual Feedback:
-A visual representation using a ProgressRing displays the current brightness level.
+---
 
-Preset Modes:
-Quick access to preset brightness levels such as Reading, Night, Gaming, and Movie modes.
+## ✨ Features
 
-Battery Saver Mode:
-Easily switch to a low brightness setting with the Battery Saver toggle.
+- **User-Friendly UI**  
+  Enjoy an attractive and responsive dark-themed interface built with [Flet](https://flet.dev/).
 
-Multi-Monitor Support:
-Choose which monitor's brightness to control via a convenient dropdown menu.
+- **Smooth Slider Control**  
+  Adjust brightness in real-time with a sleek slider. 🔆
 
-Keyboard Shortcuts:
-Adjust brightness incrementally using Ctrl+ArrowUp to increase and Ctrl+ArrowDown to decrease the brightness.
+- **Dial Visual Feedback**  
+  A dynamic **ProgressRing** displays the current brightness level in a visually engaging way.
 
-System Tray Integration:
-The application runs in the background with a system tray icon (near the network/sound area).
+- **Preset Modes**  
+  Quickly switch between various brightness presets:
+  - 📖 **Reading**
+  - 🌙 **Night**
+  - 🎮 **Gaming**
+  - 🍿 **Movie**
 
-Open: Click "Open" from the tray menu to bring up the brightness controller window.
-Hide: Use the "Hide" button within the app to minimize the window back to the tray.
-Installation
-Ensure you have Python installed, then install the required dependencies:
+- **Battery Saver Mode**  
+  Easily toggle to a low brightness setting for energy saving.
 
-bash
-Copy
-Edit
+- **Multi-Monitor Support**  
+  Seamlessly choose which monitor to control using a convenient dropdown menu.
+
+- **Keyboard Shortcuts**  
+  Incrementally adjust brightness:
+  - `Ctrl + ArrowUp` to increase
+  - `Ctrl + ArrowDown` to decrease
+
+- **System Tray Integration**  
+  Run the application in the background with a system tray icon:
+  - **Open:** Click "Open" from the tray menu to bring up the controller.
+  - **Hide:** Use the in-app "Hide" button to minimize back to the tray.
+
+---
+
+## 🛠 Installation
+
+Ensure you have Python installed on your system. Then install the required dependencies using pip:
+
+```bash
 pip install flet screen-brightness-control pystray pillow
-Usage
-Run the Program:
-Execute the main script:
 
-bash
-Copy
-Edit
-python Brightness_Controller.py
-Access via System Tray:
-The application will start hidden in the system tray. Click the tray icon and select "Open" to display the interface.
-
-Control Brightness:
-Use the slider, preset buttons, keyboard shortcuts, or monitor dropdown to adjust the brightness as needed.
-
-Contributing
-Contributions, bug reports, and feature requests are welcome! Feel free to fork the repository and submit a pull request.
-
-License
-This project is open source and available under the MIT License.
 
 
 
