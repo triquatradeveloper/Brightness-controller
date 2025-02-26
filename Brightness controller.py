@@ -1,165 +1,148 @@
+import math
 import flet as ft
 import screen_brightness_control as sbc
 import threading
 import pystray
 from PIL import Image, ImageDraw
+import ctypes
 
 class BrightnessController:
     def __init__(self, page: ft.Page):
         self.page = page
-        self.page.title = "Stylish Brightness Controller"
+        self.page.title = "Brightness Controller"
         self.page.theme_mode = "dark"
         self.page.bgcolor = "#121212"
-        # Start hidden in the background
-        self.page.window_visible = False
+        # Start hidden using the new property
+        self.page.window.visible = False
+        # Set default popup window size (will be adjusted on open)
+        self.page.window.width = 300
+        self.page.window.height = 150
 
-        # Try to get the current brightness; if fails, fallback to 50
+        # Get available monitors; if error, default to one monitor (0)
         try:
-            self.brightness = sbc.get_brightness(display=0)[0]
+            self.monitors = sbc.list_monitors()
         except Exception:
-            self.brightness = 50
+            self.monitors = [0]
 
-        # Notification text for brightness percentage
-        self.brightness_text = ft.Text(
-            value=f"Brightness: {self.brightness}%",
-            color="white",
-            size=16
-        )
+        # Create a brightness control for each monitor
+        self.controllers = []  # Each item: dict with monitor, slider, dial, text
+        for i, monitor in enumerate(self.monitors):
+            try:
+                brightness = sbc.get_brightness(display=monitor)[0]
+            except Exception:
+                brightness = 50
+            text = ft.Text(
+                value=f"Monitor {i+1}: {brightness}%",
+                color="white",
+                size=16
+            )
+            slider = ft.Slider(
+                min=0,
+                max=100,
+                value=brightness,
+                on_change=lambda e, m=monitor, idx=i: self.slider_changed(e, m, idx)
+            )
+            dial = ft.ProgressRing(
+                value=brightness / 100,
+                width=50,
+                height=50
+            )
+            self.controllers.append({
+                'monitor': monitor,
+                'text': text,
+                'slider': slider,
+                'dial': dial
+            })
 
-        # Brightness Slider; on_change passes an event containing the new value
-        self.slider = ft.Slider(
-            min=0,
-            max=100,
-            value=self.brightness,
-            on_change=self.slider_changed
-        )
+        # Build the UI: one row per monitor plus a Hide button
+        controls = []
+        for ctrl in self.controllers:
+            controls.append(
+                ft.Row(
+                    [
+                        ctrl['text'],
+                        ctrl['slider'],
+                        ctrl['dial']
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                )
+            )
 
-        # Dial visual feedback using ProgressRing
-        self.dial = ft.ProgressRing(
-            value=self.brightness / 100,
-            width=100,
-            height=100
-        )
+        hide_button = ft.ElevatedButton(text="Hide", on_click=self.hide_window)
 
-        # Preset Buttons for quick brightness settings
-        self.presets = {
-            "Reading": 70,
-            "Night": 30,
-            "Gaming": 90,
-            "Movie": 50
-        }
-        self.preset_buttons = [
-            ft.ElevatedButton(text=mode, on_click=lambda e, m=mode: self.set_preset(m))
-            for mode in self.presets
-        ]
-
-        # Battery Saver Mode Switch (sets brightness to 20 when on)
-        self.battery_mode = ft.Switch(
-            label="Battery Saver Mode",
-            on_change=self.battery_saver
-        )
-
-        # Multi-Monitor Dropdown for selecting which monitor to adjust
-        monitors = sbc.list_monitors()
-        self.monitor_dropdown = ft.Dropdown(
-            options=[ft.dropdown.Option(str(m)) for m in monitors],
-            value=str(monitors[0]) if monitors else "0",
-            on_change=self.monitor_changed,
-            width=150
-        )
-
-        # Layout: Added a "Hide" button to let the user hide the window again
         self.page.add(
             ft.Column(
-                [
-                    ft.Text("Brightness Controller", size=24, weight="bold", color="white"),
-                    self.brightness_text,
-                    self.slider,
-                    self.dial,
-                    ft.Row(self.preset_buttons, alignment=ft.MainAxisAlignment.CENTER),
-                    self.battery_mode,
-                    ft.Row(
-                        [ft.Text("Select Monitor:", color="white"), self.monitor_dropdown],
-                        alignment=ft.MainAxisAlignment.CENTER
-                    ),
-                    ft.ElevatedButton(text="Hide", on_click=self.hide_window)
-                ],
+                [ft.Text("Brightness Controller", size=24, weight="bold", color="white")]
+                + controls +
+                [hide_button],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER
             )
         )
 
-        # Setup keyboard shortcuts: Ctrl+ArrowUp and Ctrl+ArrowDown
-        self.page.on_keyboard_event = self.handle_keyboard_event
-
-    def slider_changed(self, e: ft.ControlEvent):
+    def slider_changed(self, e: ft.ControlEvent, monitor, idx):
         level = int(e.control.value)
-        self.update_brightness(level)
+        self.update_brightness(level, monitor, idx)
 
-    def update_brightness(self, level: int):
-        monitor = self.monitor_dropdown.value
+    def update_brightness(self, level: int, monitor, idx):
         try:
             sbc.set_brightness(level, display=monitor)
         except Exception as ex:
-            print(f"Error setting brightness: {ex}")
-        self.dial.value = level / 100
-        self.brightness_text.value = f"Brightness: {level}%"
+            print(f"Error setting brightness on monitor {monitor}: {ex}")
+        ctrl = self.controllers[idx]
+        ctrl['dial'].value = level / 100
+        ctrl['text'].value = f"Monitor {idx+1}: {level}%"
         self.page.update()
 
-    def set_preset(self, mode):
-        level = self.presets[mode]
-        self.slider.value = level
-        self.update_brightness(level)
-
-    def battery_saver(self, e: ft.ControlEvent):
-        if e.control.value:
-            self.slider.value = 20
-            self.update_brightness(20)
-        else:
-            # When battery saver is turned off, reset to a default value (e.g., 50)
-            self.slider.value = 50
-            self.update_brightness(50)
-
-    def monitor_changed(self, e: ft.ControlEvent):
-        # When the monitor selection changes, update brightness on the new monitor
-        self.update_brightness(int(self.slider.value))
-
-    def handle_keyboard_event(self, e: ft.KeyboardEvent):
-        if e.key == "ArrowUp" and e.ctrl:
-            new_value = min(100, int(self.slider.value) + 5)
-            self.slider.value = new_value
-            self.update_brightness(new_value)
-        elif e.key == "ArrowDown" and e.ctrl:
-            new_value = max(0, int(self.slider.value) - 5)
-            self.slider.value = new_value
-            self.update_brightness(new_value)
-
     def hide_window(self, e: ft.ControlEvent):
-        self.page.window_visible = False
+        self.page.window.visible = False
         self.page.update()
 
 def create_image():
-    # Create a simple icon image (64x64) for the system tray
-    width = 64
-    height = 64
-    image = Image.new('RGB', (width, height), "black")
+    # Create a sun icon image (64x64) with a transparent background.
+    size = 64
+    image = Image.new('RGBA', (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    # Draw a simple white rectangle (you can customize this as needed)
-    draw.rectangle((0, 0, width, height), fill="white")
+    # Draw a yellow circle (sun)
+    center = (size // 2, size // 2)
+    radius = 20
+    draw.ellipse((center[0]-radius, center[1]-radius, center[0]+radius, center[1]+radius), fill="yellow")
+    # Add rays around the sun
+    for angle in range(0, 360, 45):
+        x = center[0] + int(radius * 1.5 * math.cos(math.radians(angle)))
+        y = center[1] + int(radius * 1.5 * math.sin(math.radians(angle)))
+        draw.line((center, (x, y)), fill="yellow", width=2)
     return image
 
 def run_tray_icon(controller: BrightnessController):
-    # Callback to show the window when "Open" is clicked in the tray
+    # Callback for the tray icon "Open" menu item.
     def on_open(icon, item):
-        controller.page.window_visible = True
+        # Get screen dimensions using ctypes (Windows-specific)
+        try:
+            user32 = ctypes.windll.user32
+            screen_width = user32.GetSystemMetrics(0)
+            screen_height = user32.GetSystemMetrics(1)
+        except Exception:
+            screen_width = 1920
+            screen_height = 1080
+
+        # Set window size (if desired, you can adjust these values)
+        controller.page.window.width = 300
+        controller.page.window.height = 150
+
+        # Position the window near the bottom-right (approximate tray icon location)
+        controller.page.window.left = screen_width - controller.page.window.width - 10
+        controller.page.window.top = screen_height - controller.page.window.height - 40
+
+        controller.page.window.visible = True
         controller.page.update()
-    # Callback to exit the app when "Exit" is clicked
+
     def on_exit(icon, item):
         icon.stop()
-        # Close the Flet app; this may vary depending on your deployment
         controller.page.window_close()
+
     tray_menu = pystray.Menu(
-        pystray.MenuItem("Open", on_open),
+        pystray.MenuItem("Open", on_open, default=True),
         pystray.MenuItem("Exit", on_exit)
     )
     icon = pystray.Icon("brightness_controller", create_image(), "Brightness Controller", tray_menu)
@@ -167,7 +150,7 @@ def run_tray_icon(controller: BrightnessController):
 
 def main(page: ft.Page):
     controller = BrightnessController(page)
-    # Start the system tray icon in a separate thread
+    # Start the system tray icon in a separate thread so it doesn't block the UI
     threading.Thread(target=run_tray_icon, args=(controller,), daemon=True).start()
 
 ft.app(target=main)
