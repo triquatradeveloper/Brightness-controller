@@ -1,4 +1,14 @@
 # 🌞 Stylish Brightness Controller
+![image](https://github.com/user-attachments/assets/7b20ed43-4fb5-4ae6-9b26-f7adfa68c45c)
+
+
+
+
+
+
+
+![image](https://github.com/user-attachments/assets/a54c3776-9dc8-447d-a633-d5ec2fabdbdd)
+
 
 A sleek, cross-platform brightness controller built with [Flet](https://flet.dev), [screen_brightness_control](https://github.com/AlJohri/screen_brightness_control), and [pystray](https://github.com/moses-palmer/pystray). This tool lets you easily adjust the brightness of your monitors via a modern popup interface and a system tray icon with a sun motif.
 
