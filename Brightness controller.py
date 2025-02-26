@@ -12,23 +12,23 @@ class BrightnessController:
         self.page.title = "Brightness Controller"
         self.page.theme_mode = "dark"
         self.page.bgcolor = "#121212"
-        # Start hidden using the new property
         self.page.window.visible = False
-        # Set default popup window size (will be adjusted on open)
         self.page.window.width = 300
         self.page.window.height = 150
 
-        # Get available monitors; if error, default to one monitor (0)
+        # Get the list of monitors as indices. If list_monitors() returns a list of identifiers,
+        # we use its length to generate indices.
         try:
-            self.monitors = sbc.list_monitors()
+            monitors = sbc.list_monitors()
+            self.monitors = list(range(len(monitors)))
         except Exception:
             self.monitors = [0]
 
-        # Create a brightness control for each monitor
-        self.controllers = []  # Each item: dict with monitor, slider, dial, text
-        for i, monitor in enumerate(self.monitors):
+        # Create a brightness controller for each monitor using its index
+        self.controllers = []
+        for i in self.monitors:
             try:
-                brightness = sbc.get_brightness(display=monitor)[0]
+                brightness = sbc.get_brightness(display=i)[0]
             except Exception:
                 brightness = 50
             text = ft.Text(
@@ -40,7 +40,7 @@ class BrightnessController:
                 min=0,
                 max=100,
                 value=brightness,
-                on_change=lambda e, m=monitor, idx=i: self.slider_changed(e, m, idx)
+                on_change=lambda e, idx=i: self.slider_changed(e, idx)
             )
             dial = ft.ProgressRing(
                 value=brightness / 100,
@@ -48,13 +48,12 @@ class BrightnessController:
                 height=50
             )
             self.controllers.append({
-                'monitor': monitor,
+                'index': i,
                 'text': text,
                 'slider': slider,
                 'dial': dial
             })
 
-        # Build the UI: one row per monitor plus a Hide button
         controls = []
         for ctrl in self.controllers:
             controls.append(
@@ -80,15 +79,15 @@ class BrightnessController:
             )
         )
 
-    def slider_changed(self, e: ft.ControlEvent, monitor, idx):
+    def slider_changed(self, e: ft.ControlEvent, idx: int):
         level = int(e.control.value)
-        self.update_brightness(level, monitor, idx)
+        self.update_brightness(level, idx)
 
-    def update_brightness(self, level: int, monitor, idx):
+    def update_brightness(self, level: int, idx: int):
         try:
-            sbc.set_brightness(level, display=monitor)
+            sbc.set_brightness(level, display=idx)
         except Exception as ex:
-            print(f"Error setting brightness on monitor {monitor}: {ex}")
+            print(f"Error setting brightness on monitor {idx}: {ex}")
         ctrl = self.controllers[idx]
         ctrl['dial'].value = level / 100
         ctrl['text'].value = f"Monitor {idx+1}: {level}%"
@@ -103,11 +102,12 @@ def create_image():
     size = 64
     image = Image.new('RGBA', (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    # Draw a yellow circle (sun)
     center = (size // 2, size // 2)
     radius = 20
-    draw.ellipse((center[0]-radius, center[1]-radius, center[0]+radius, center[1]+radius), fill="yellow")
-    # Add rays around the sun
+    draw.ellipse(
+        (center[0]-radius, center[1]-radius, center[0]+radius, center[1]+radius),
+        fill="yellow"
+    )
     for angle in range(0, 360, 45):
         x = center[0] + int(radius * 1.5 * math.cos(math.radians(angle)))
         y = center[1] + int(radius * 1.5 * math.sin(math.radians(angle)))
@@ -115,9 +115,8 @@ def create_image():
     return image
 
 def run_tray_icon(controller: BrightnessController):
-    # Callback for the tray icon "Open" menu item.
     def on_open(icon, item):
-        # Get screen dimensions using ctypes (Windows-specific)
+        # Get screen dimensions (Windows-specific)
         try:
             user32 = ctypes.windll.user32
             screen_width = user32.GetSystemMetrics(0)
@@ -126,11 +125,8 @@ def run_tray_icon(controller: BrightnessController):
             screen_width = 1920
             screen_height = 1080
 
-        # Set window size (if desired, you can adjust these values)
         controller.page.window.width = 300
         controller.page.window.height = 150
-
-        # Position the window near the bottom-right (approximate tray icon location)
         controller.page.window.left = screen_width - controller.page.window.width - 10
         controller.page.window.top = screen_height - controller.page.window.height - 40
 
@@ -150,7 +146,6 @@ def run_tray_icon(controller: BrightnessController):
 
 def main(page: ft.Page):
     controller = BrightnessController(page)
-    # Start the system tray icon in a separate thread so it doesn't block the UI
     threading.Thread(target=run_tray_icon, args=(controller,), daemon=True).start()
 
 ft.app(target=main)
