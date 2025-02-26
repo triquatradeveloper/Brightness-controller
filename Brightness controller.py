@@ -125,8 +125,8 @@ def run_tray_icon(controller: BrightnessController):
             screen_width = 1920
             screen_height = 1080
 
-        controller.page.window.width = 300
-        controller.page.window.height = 150
+        controller.page.window.width = 400
+        controller.page.window.height = 200
         controller.page.window.left = screen_width - controller.page.window.width - 10
         controller.page.window.top = screen_height - controller.page.window.height - 40
 
